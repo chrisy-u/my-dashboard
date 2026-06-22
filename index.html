@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나의 대시보드</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", sans-serif; background: #f7f7f5; color: #1f1f1f; padding: 20px; line-height: 1.5; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header { margin-bottom: 18px; }
+h1 { font-size: 22px; font-weight: 700; }
+.date { color: #888; font-size: 13px; margin-top: 2px; }
+.section-title { font-size: 16px; font-weight: 700; margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #ececec; display: flex; align-items: center; gap: 8px; }
+.section-title .sub { font-size: 11px; color: #aaa; font-weight: 500; margin-left: auto; }
+.stats { display: flex; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+.stat { flex: 1; min-width: 100px; background: #fff; border: 1px solid #ececec; border-radius: 12px; padding: 14px 16px; }
+.stat .num { font-size: 24px; font-weight: 700; }
+.stat .lbl { font-size: 12px; color: #888; margin-top: 2px; }
+.stat.overdue .num { color: #d1453b; } .stat.today .num { color: #058527; } .stat.week .num { color: #2d6ae3; }
+.stat.gain .num { color: #058527; } .stat.loss .num { color: #d1453b; }
+.group { margin-bottom: 18px; }
+.group h2 { font-size: 14px; font-weight: 700; margin: 14px 0 10px; display: flex; align-items: center; gap: 8px; }
+.group h2 .cnt { font-size: 12px; color: #aaa; font-weight: 500; }
+.group.overdue h2 { color: #d1453b; }
+.task { background: #fff; border: 1px solid #ececec; border-radius: 10px; padding: 11px 14px; margin-bottom: 7px; display: flex; align-items: flex-start; gap: 10px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: #ccc; }
+.p1 { background: #d1453b; } .p2 { background: #eb8909; } .p3 { background: #2d6ae3; } .p4 { background: #d4d4d4; }
+.task-body { flex: 1; min-width: 0; }
+.task-content { font-size: 14px; }
+.task-meta { font-size: 11px; color: #999; margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tag { background: #f0f0ee; border-radius: 5px; padding: 1px 6px; color: #777; }
+.tag.proj { background: #eef3fd; color: #2d6ae3; }
+.tag.recur { color: #058527; }
+.due-late { color: #d1453b; font-weight: 600; }
+.empty { color: #aaa; font-size: 13px; padding: 16px; text-align: center; background: #fff; border: 1px dashed #e0e0e0; border-radius: 10px; }
+.holding { background: #fff; border: 1px solid #ececec; border-radius: 10px; padding: 12px 14px; margin-bottom: 7px; display: flex; align-items: center; gap: 12px; }
+.h-main { flex: 1; min-width: 0; }
+.h-name { font-size: 14px; font-weight: 600; }
+.h-ticker { font-size: 11px; color: #999; }
+.h-sector { display: inline-block; font-size: 10px; background: #f0f0ee; color: #777; border-radius: 5px; padding: 1px 6px; margin-left: 6px; }
+.h-prices { text-align: right; font-size: 12px; color: #888; white-space: nowrap; }
+.h-prices b { color: #1f1f1f; font-size: 14px; }
+.h-pnl { text-align: right; min-width: 72px; font-weight: 700; font-size: 15px; }
+.pos { color: #058527; } .neg { color: #d1453b; }
+.h-bar { height: 4px; border-radius: 3px; background: #eee; margin-top: 5px; overflow: hidden; }
+.h-bar span { display: block; height: 100%; }
+.note { font-size: 11px; color: #aaa; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>나의 대시보드</h1>
+    <div class="date" id="date"></div>
+  </header>
+  <div class="section-title">✅ 할 일</div>
+  <div class="stats" id="stats"></div>
+  <div id="content"></div>
+  <div class="section-title">📈 포트폴리오 <span class="sub" id="stock-asof"></span></div>
+  <div class="stats" id="stock-stats"></div>
+  <div id="stocks"></div>
+  <div class="note">※ 스냅샷 기준일 2026-06-22. 할 일·시세가 고정된 정적 페이지입니다.</div>
+</div>
+<script>
+const SNAPSHOT = "2026-06-22";
+const PROJECTS = { "6Crf4CqC6PM2prgp":"수신함","6HJ7ChcC9VQHFP2W":"업무","6P88PmVcrvX2GRGM":"개인","6WM8RM3PxRJPJQR3":"메모","6P88GjCm8x8g9h5q":"루틴","6gR6XJ526R6x5WPj":"플리" };
+const DOW = ["일","월","화","수","목","금","토"];
+const TASKS = [
+  {content:"대출 토스은행 205만원", dueDate:"2026-06-15", recurring:"매월 15일", priority:"p4", projectId:"6P88PmVcrvX2GRGM", labels:["비용"]},
+  {content:"카드 현대카드 200만원", dueDate:"2026-06-20", recurring:"매월 20일", priority:"p4", projectId:"6P88PmVcrvX2GRGM", labels:["비용"]},
+  {content:"핸드폰요금 하나은행 15만원", dueDate:"2026-06-25", recurring:"매월 25일", priority:"p4", projectId:"6P88PmVcrvX2GRGM", labels:["비용"]},
+  {content:"결산하기", dueDate:"2026-06-25", recurring:"매월 25일", priority:"p3", projectId:"6HJ7ChcC9VQHFP2W", labels:["비용","해리"]},
+  {content:"결산하기", dueDate:"2026-06-25", recurring:"매월 25일", priority:"p3", projectId:"6HJ7ChcC9VQHFP2W", labels:["당구야놀자","비용"]},
+  {content:"결산하기", dueDate:"2026-06-20", recurring:"매월 20일", priority:"p3", projectId:"6HJ7ChcC9VQHFP2W", labels:["비용","체크"]},
+  {content:"계산서 발행", dueDate:"2026-06-20", recurring:"매월 20일", priority:"p3", projectId:"6HJ7ChcC9VQHFP2W", labels:["비용","체크","커뮤니크"]},
+  {content:"사무실 월세 / 관리비", dueDate:"2026-06-20", recurring:"매월 20일", priority:"p3", projectId:"6HJ7ChcC9VQHFP2W", labels:["비용"]},
+  {content:"동석이 작업 견적논의", dueDate:"2026-06-15", recurring:false, priority:"p4", projectId:"6Crf4CqC6PM2prgp", labels:[]},
+  {content:"KFC 견적 60만원", dueDate:"2026-06-15", recurring:false, priority:"p4", projectId:"6Crf4CqC6PM2prgp", labels:[]},
+  {content:"머쉬룸견적", dueDate:"2026-06-15", recurring:false, priority:"p4", projectId:"6Crf4CqC6PM2prgp", labels:[]},
+  {content:"니베아견적", dueDate:"2026-06-15", recurring:false, priority:"p4", projectId:"6Crf4CqC6PM2prgp", labels:[]},
+  {content:"브랜뉴 금액 체크", dueDate:"2026-06-18", recurring:false, priority:"p4", projectId:"6Crf4CqC6PM2prgp", labels:[]},
+  {content:"주식 매도", dueDate:"2026-06-23T01:00:00", recurring:false, priority:"p4", projectId:"6Crf4CqC6PM2prgp", labels:[]},
+  {content:"부동산 전화하기", dueDate:"2026-06-23T13:00:00", recurring:false, priority:"p4", projectId:"6Crf4CqC6PM2prgp", labels:[]}
+];
+const PORTFOLIO = { asOf:"2026-06-22", holdings:[
+  {name:"에이로 그룹", ticker:"AIRO", sector:"우주/방산", avg:7.17, price:7.88},
+  {name:"Redwire", ticker:"RDW", sector:"우주/방산", avg:9.28, price:14.35},
+  {name:"빅베어 AI", ticker:"BBAI", sector:"AI리테일", avg:4.30, price:3.92},
+  {name:"SEALSQ", ticker:"LAES", sector:"양자보안", avg:3.41, price:3.12}
+]};
+function dayDiff(due,today){ return Math.round((new Date(due+"T00:00:00")-new Date(today+"T00:00:00"))/86400000); }
+function dueLabel(diff,ymd){ if(diff<0)return{txt:Math.abs(diff)+"일 지남",late:true}; if(diff===0)return{txt:"오늘",late:false}; if(diff===1)return{txt:"내일",late:false}; const d=new Date(ymd+"T00:00:00"); return{txt:(d.getMonth()+1)+"/"+d.getDate()+" ("+DOW[d.getDay()]+")",late:false}; }
+function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function stat(cls,n,lbl){ return '<div class="stat '+cls+'"><div class="num">'+n+'</div><div class="lbl">'+lbl+'</div></div>'; }
+function taskHtml(t){ const pr=t.priority||"p4",proj=PROJECTS[t.projectId]||""; const dl=t._ymd?dueLabel(t._diff,t._ymd):null; let m=""; if(proj)m+='<span class="tag proj">'+esc(proj)+'</span>'; if(dl)m+='<span class="'+(dl.late?"due-late":"")+'">'+dl.txt+'</span>'; if(t.recurring)m+='<span class="tag recur">↻ '+esc(t.recurring)+'</span>'; (t.labels||[]).forEach(l=>m+='<span class="tag">'+esc(l)+'</span>'); return '<div class="task"><span class="dot '+pr+'"></span><div class="task-body"><div class="task-content">'+esc(t.content)+'</div>'+(m?'<div class="task-meta">'+m+'</div>':'')+'</div></div>'; }
+function groupHtml(title,list,cls){ if(!list.length)return""; let h='<div class="group '+(cls||"")+'"><h2>'+title+' <span class="cnt">'+list.length+'개</span></h2>'; list.forEach(t=>h+=taskHtml(t)); return h+'</div>'; }
+function renderTodos(){
+  const today=SNAPSHOT;
+  TASKS.forEach(t=>{const y=(t.dueDate||"").slice(0,10);t._ymd=y;t._diff=y?dayDiff(y,today):999;});
+  TASKS.sort((a,b)=>a._diff-b._diff||(a.priority||"p4").localeCompare(b.priority||"p4"));
+  const od=TASKS.filter(t=>t._diff<0),td=TASKS.filter(t=>t._diff===0),up=TASKS.filter(t=>t._diff>0&&t._diff<=7);
+  document.getElementById("stats").innerHTML=stat("overdue",od.length,"기한 지남")+stat("today",td.length,"오늘")+stat("week",up.length,"이번 주 예정");
+  let html=groupHtml("기한 지난 할 일",od,"overdue")+groupHtml("오늘",td,"today");
+  if(up.length){html+='<div class="group"><h2>앞으로 7일 <span class="cnt">'+up.length+'개</span></h2>';up.forEach(t=>html+=taskHtml(t));html+='</div>';}
+  if(!od.length&&!td.length&&!up.length)html='<div class="empty">예정된 할 일이 없어요 🎉</div>';
+  document.getElementById("content").innerHTML=html;
+}
+function renderStocks(){
+  document.getElementById("stock-asof").textContent="현재가 기준일 "+PORTFOLIO.asOf;
+  const hs=PORTFOLIO.holdings.map(h=>({...h,pnl:(h.price-h.avg)/h.avg*100}));
+  const win=hs.filter(h=>h.pnl>=0).length, avg=hs.reduce((s,h)=>s+h.pnl,0)/hs.length;
+  document.getElementById("stock-stats").innerHTML=stat(avg>=0?"gain":"loss",(avg>=0?"+":"")+avg.toFixed(1)+"%","평균 수익률")+stat("gain",win+"개","수익 종목")+stat("loss",(hs.length-win)+"개","손실 종목");
+  let html=""; hs.sort((a,b)=>b.pnl-a.pnl).forEach(h=>{const cls=h.pnl>=0?"pos":"neg",w=Math.min(Math.abs(h.pnl),100);
+    html+='<div class="holding"><div class="h-main"><div class="h-name">'+esc(h.name)+'<span class="h-sector">'+esc(h.sector)+'</span></div><div class="h-ticker">'+esc(h.ticker)+'</div><div class="h-bar"><span style="width:'+w+'%;background:'+(h.pnl>=0?"#058527":"#d1453b")+'"></span></div></div><div class="h-prices">평단 $'+h.avg.toFixed(2)+'<br><b>$'+h.price.toFixed(2)+'</b></div><div class="h-pnl '+cls+'">'+(h.pnl>=0?"+":"")+h.pnl.toFixed(1)+'%</div></div>';});
+  document.getElementById("stocks").innerHTML=html;
+}
+document.getElementById("date").textContent=new Date(SNAPSHOT+"T00:00:00").toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
+renderTodos(); renderStocks();
+</script>
+</body>
+</html>
